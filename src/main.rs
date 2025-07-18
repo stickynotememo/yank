@@ -2,11 +2,9 @@
 // TODO: Prevent deletion of yanked files
 // TODO: Directory support
 
-use std::path::{ PathBuf, Path };
+use std::path::{ PathBuf };
 use std::path;
-use std::fs::{ metadata, rename };
-use std::env;
-use clap::builder::OsStr;
+use std::fs;
 use clap::Parser;
 use preferences::{ AppInfo, Preferences };
 use serde::{ Serialize, Deserialize };
@@ -46,34 +44,22 @@ const APP_INFO: AppInfo = AppInfo {
 
 fn copy(args: &Args) {
     let file = PathBuf::from(&args.file.as_ref().unwrap());
-    
-    let Ok(value) = metadata(&file) else {
-        panic!("Could not locate file or directory.");
-    };
+    let file_metadata = fs::metadata(&file).expect("Could not find file or folder");
+
     let moveop = match args.cut {
         true => MoveOp::Move,
         false => MoveOp::Copy
     };
 
-    if value.is_file() {
-        // Copy only specifies the file and saves it in storage. The move / copy operation is
+    if file_metadata.is_file() {
+        // Copy only specifies the file and saves it in storage. The file operation is
         // done by paste()
         let user_data = UserData {
             moveop: moveop,
-            // TODO: Avoid use of unwrap and do proper error handling
-            object_path: path::absolute(file).unwrap()
+            object_path: path::absolute(file).expect("Could not find file or folder")
         };
-        match user_data.save(&APP_INFO, PREFS_KEY) {
-            Ok(v) => {
-                dbg!(v);
-            },
-            Err(e) => {
-                dbg!(e);
-            }
-        }
-        // TODO: Add support for non UTF-8 characters by avoiding unwrap and using let else to
-        // validate data.
-        
+        user_data.save(&APP_INFO, PREFS_KEY).expect("Could not save clipboard to file.");
+
     } else {
         todo!();
         // Use when directory copy is implemented
@@ -87,7 +73,6 @@ fn paste(args: &Args) {
     // Optionally, the --paste flag can be used to specify where to save the file
 
     let user_data = UserData::load(&APP_INFO, PREFS_KEY).unwrap();
-    // TODO: Optimise so only one user_data file load occurs
     let moveop = user_data.moveop;
     let clipboard = user_data.object_path;
 
@@ -100,14 +85,13 @@ fn paste(args: &Args) {
         None => PathBuf::from(path::absolute(clipboard.file_name().unwrap()).unwrap()) 
         // Clipboard is set by yank, not by the user. Using unwrap is okay.
     };
-    dbg!(&clipboard);
 
     let paste_file_path = path::absolute(paste_file_name).expect("yank: paste path could not be parsed");
 
     match moveop {
-        MoveOp::Move => { rename(clipboard, paste_file_path).expect("yank: filesystem error") },
-        MoveOp::Copy => { todo!() }
-    }
+        MoveOp::Move => { fs::rename(clipboard, paste_file_path).expect("yank: an error occurred while copying files"); },
+        MoveOp::Copy => { fs::copy(clipboard, paste_file_path).expect("yank: an error occurred while copying files"); }
+    };
 
 }
 
@@ -120,5 +104,4 @@ fn main() {
         None => paste(&args)
     };
 
-    
 }
