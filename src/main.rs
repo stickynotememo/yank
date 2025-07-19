@@ -11,7 +11,7 @@ use preferences::{ AppInfo, Preferences };
 use serde::{ Serialize, Deserialize };
 
 #[derive(Parser)]
-#[command(author = "stickynotememo", version = "0.1.0", about, long_about = None)]
+#[command(author = "stickynotememo", version = "0.1.0", about = "A command line tool to copy and paste files in a desktop-like fashion.", long_about = None)]
 struct Args {
     file: Option<String>,
 
