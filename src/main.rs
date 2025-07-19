@@ -1,6 +1,7 @@
 // TODO: Clipboard history
 // TODO: Prevent deletion of yanked files
 // TODO: Directory support
+// TODO: Add tests
 
 use std::path::{ PathBuf };
 use std::path;
@@ -9,17 +10,17 @@ use clap::Parser;
 use preferences::{ AppInfo, Preferences };
 use serde::{ Serialize, Deserialize };
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author = "stickynotememo", version = "0.1.0", about, long_about = None)]
 struct Args {
     file: Option<String>,
+
     #[arg(short = 'x', long)]
     cut: bool,
+
     #[arg(short, long)]
     recursive: bool,
+
     #[arg(short, long = "paste")]
     paste_file: Option<String>,
 }
